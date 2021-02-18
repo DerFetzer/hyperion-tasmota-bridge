@@ -5,6 +5,8 @@ extern crate serde_derive;
 
 use crate::settings::Settings;
 use either::*;
+use env_logger::Env;
+use log::{debug, info};
 use paho_mqtt::{AsyncClient, ConnectOptionsBuilder, CreateOptionsBuilder, Message};
 use std::cmp;
 use std::time::Duration;
@@ -12,6 +14,8 @@ use tokio::net::UdpSocket;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::Builder::from_env(Env::default().default_filter_or("warn")).init();
+
     let settings = Settings::new()?;
 
     let mut buf = vec![0; settings.receive_buffer_size.unwrap_or(1024) as usize];
@@ -41,13 +45,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     loop {
         let (_, _) = socket.recv_from(&mut buf).await?;
 
-        println!(
+        debug!(
             "Buffer start: {:?}",
             &buf[..cmp::min(settings.receive_buffer_size.unwrap_or(1024), 15) as usize]
         );
 
         if buf.iter().zip(old_buf.iter()).any(|(a, b)| a != b) {
-            println!("Change in buffer...sending MQTT");
+            info!("Change in buffer...sending MQTT");
             old_buf.copy_from_slice(&buf);
 
             for tasmota in settings.tasmotas.iter() {
