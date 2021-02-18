@@ -6,9 +6,8 @@ extern crate serde_derive;
 use crate::settings::Settings;
 use either::*;
 use env_logger::Env;
-use log::{debug, info};
+use log::{debug, info, trace, warn};
 use paho_mqtt::{AsyncClient, ConnectOptionsBuilder, CreateOptionsBuilder, Message};
-use std::cmp;
 use std::time::Duration;
 use tokio::net::UdpSocket;
 
@@ -43,12 +42,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     mqtt_client.connect(conn_opts).await?;
 
     loop {
-        let (_, _) = socket.recv_from(&mut buf).await?;
+        let (len, _) = socket.recv_from(&mut buf).await?;
 
-        debug!(
-            "Buffer start: {:?}",
-            &buf[..cmp::min(settings.receive_buffer_size.unwrap_or(1024), 15) as usize]
-        );
+        if len > buf.len() {
+            warn!("Receive buffer size is too low! ({} < {})", buf.len(), len);
+        }
+        trace!("Received buffer: {:?}", &buf[..]);
 
         if buf.iter().zip(old_buf.iter()).any(|(a, b)| a != b) {
             info!("Change in buffer...sending MQTT");
@@ -78,6 +77,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     << 16)
                         ))
                     }
+
+                    debug!("MQTT payload for {}: {}", tasmota.mqtt_prefix, payload);
 
                     mqtt_client
                         .publish(Message::new(
