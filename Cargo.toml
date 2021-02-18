@@ -1,0 +1,15 @@
+[package]
+name = "hyperion-tasmota-bridge"
+version = "0.1.0"
+authors = ["DerFetzer <kontakt@der-fetzer.de>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+paho-mqtt = { version = "0.9", default-features = false, features = ["bundled"] }
+tokio = { version = "1.0", features = ["full"] }
+config = { version = "0.10", features = ["yaml"] }
+serde = "1.0"
+serde_derive = "1.0"
+either = "1.6"
