@@ -40,18 +40,24 @@ impl Settings {
         let mut res: Settings = s.try_into()?;
 
         for tasmota in res.tasmotas.iter_mut() {
+            if tasmota.mappings.is_empty() {
+                return Err(ConfigError::Message("There has to be at least one mapping per device!".to_string()));
+            }
+
             tasmota.mappings.sort_by(|a, b| a.target_start.cmp(&b.target_start));
             // Check for overlapping target ranges
-            let f = tasmota.mappings.iter().fold(0_i32, |i, t| {
-                if i == -1 || i > t.target_start as i32 {
-                    -1
-                }
-                else {
-                    (t.target_start + t.length.unwrap_or(1)) as i32
-                }
+            let f = tasmota.mappings.iter().fold(Some(0), |i, t| {
+                i.and_then(|i| {
+                    if i > t.target_start {
+                        None
+                    }
+                    else {
+                        Some(t.target_start + t.length.unwrap_or(1))
+                    }
+                })
             });
 
-            if f == -1 {
+            if f.is_none() {
                 return Err(ConfigError::Message("Overlapping target ranges are not allowed!".to_string()));
             }
         }
