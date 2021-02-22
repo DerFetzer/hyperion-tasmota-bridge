@@ -54,10 +54,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             old_buf.copy_from_slice(&buf);
 
             for tasmota in settings.tasmotas.iter() {
-                for mapping in tasmota.mappings.iter() {
-                    let mut payload =
-                        String::with_capacity(mapping.length.unwrap_or(1) as usize * 8);
+                let min_target_index = tasmota.mappings.iter().map(|m| m.target_start).min().unwrap();
+                let max_target_index = tasmota.mappings.iter().map(|m| m.target_start + m.length.unwrap_or(1)).max().unwrap();
 
+                let mut colors = vec![Option::<u32>::None; (max_target_index - min_target_index) as usize];
+
+                for mapping in tasmota.mappings.iter() {
                     let range = if mapping.reverse.unwrap_or(false) {
                         Left((0..mapping.length.unwrap_or(1)).rev())
                     }
@@ -66,28 +68,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     };
 
                     for i in range.into_iter() {
-                        payload.push_str(&format!(
-                            "#{:06x} ",
+                        colors[(mapping.target_start - min_target_index + i) as usize] = Some(
                             buf[mapping.source_start as usize * 3 + i as usize * 3 + 2] as u32
                                 + ((buf[mapping.source_start as usize * 3 + i as usize * 3 + 1]
-                                    as u32)
-                                    << 8)
+                                as u32)
+                                << 8)
                                 + ((buf[mapping.source_start as usize * 3 + i as usize * 3]
-                                    as u32)
-                                    << 16)
-                        ))
+                                as u32)
+                                << 16)
+                        )
                     }
-
-                    debug!("MQTT payload for {}: {}", tasmota.mqtt_prefix, payload);
-
-                    mqtt_client
-                        .publish(Message::new(
-                            format!("{}/LED{}", tasmota.mqtt_prefix, mapping.target_start + 1),
-                            payload,
-                            1,
-                        ))
-                        .await?;
                 }
+                let mut payload =
+                    String::with_capacity((max_target_index - min_target_index) as usize * 8);
+
+                colors.iter().for_each(|c| payload.push_str(&format!("#{:06x} ", c.unwrap_or(0))));
+
+                debug!("MQTT payload for {}: {}", tasmota.mqtt_prefix, payload);
+
+                mqtt_client
+                    .publish(Message::new(
+                        format!("{}/LED{}", tasmota.mqtt_prefix, min_target_index + 1),
+                        payload,
+                        1,
+                    ))
+                    .await?;
             }
         }
     }
