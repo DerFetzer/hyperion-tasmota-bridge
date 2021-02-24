@@ -97,9 +97,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         for wled in settings.wleds.iter().flatten() {
-            let max_target_index = wled.mappings.iter().map(|m| m.target_start + m.length.unwrap_or(1)).max().unwrap();
-
-            let mut packet = vec![0_u8; (max_target_index * 3 + 2) as usize];
+            let mut packet = vec![0_u8; (wled.number_of_leds * 3 + 2) as usize];
             packet[0] = 2; // DRGB
             packet[1] = 1; // Timeout
 
