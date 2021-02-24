@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             info!("Change in buffer...sending MQTT");
             old_buf.copy_from_slice(&buf);
 
-            for tasmota in settings.tasmotas.iter() {
+            for tasmota in settings.tasmotas.iter().flatten() {
                 let min_target_index = tasmota.mappings.iter().map(|m| m.target_start).min().unwrap();
                 let max_target_index = tasmota.mappings.iter().map(|m| m.target_start + m.length.unwrap_or(1)).max().unwrap();
 
@@ -96,7 +96,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .await?;
             }
         }
-        for wled in settings.wleds.iter() {
+        for wled in settings.wleds.iter().flatten() {
             let max_target_index = wled.mappings.iter().map(|m| m.target_start + m.length.unwrap_or(1)).max().unwrap();
 
             let mut packet = vec![0_u8; (max_target_index * 3 + 2) as usize];

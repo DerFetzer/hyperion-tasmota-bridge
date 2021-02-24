@@ -34,8 +34,8 @@ pub struct Settings {
     pub udp_bind_address: String,
     pub mqtt: Mqtt,
     pub receive_buffer_size: Option<u32>,
-    pub tasmotas: Vec<Tasmota>,
-    pub wleds: Vec<Wled>,
+    pub tasmotas: Option<Vec<Tasmota>>,
+    pub wleds: Option<Vec<Wled>>,
 }
 
 impl Settings {
@@ -47,10 +47,14 @@ impl Settings {
 
         let mut res: Settings = s.try_into()?;
 
-        for tasmota in res.tasmotas.iter_mut() {
+        if res.tasmotas.is_none() && res.wleds.is_none() {
+            return Err(ConfigError::Message("There are no target devices configured!".to_string()));
+        }
+
+        for tasmota in res.tasmotas.iter_mut().flatten() {
             Settings::process_mappings(&mut tasmota.mappings)?;
         }
-        for wled in res.wleds.iter_mut() {
+        for wled in res.wleds.iter_mut().flatten() {
             Settings::process_mappings(&mut wled.mappings)?;
         }
 
