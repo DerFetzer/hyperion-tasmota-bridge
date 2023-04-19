@@ -38,7 +38,7 @@ impl Settings {
         Ok(res)
     }
 
-    fn process_mappings(mappings: &mut Vec<LedMapping>) -> Result<(), ConfigError> {
+    fn process_mappings(mappings: &mut [LedMapping]) -> Result<(), ConfigError> {
         if mappings.is_empty() {
             return Err(ConfigError::Message(
                 "There has to be at least one mapping per device!".to_string(),
@@ -63,6 +63,6 @@ impl Settings {
             ));
         }
 
-        return Ok(());
+        Ok(())
     }
 }
